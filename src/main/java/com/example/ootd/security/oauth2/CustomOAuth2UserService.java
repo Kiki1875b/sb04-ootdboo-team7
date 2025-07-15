@@ -37,6 +37,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     OAuth2Provider provider = OAuth2Provider.valueOf(registrationId.toUpperCase());
     User user = provider.getOrCreateUser(attributes, userRepository);
 
+    if(Boolean.TRUE.equals(user.getIsLocked())){
+      throw new OotdException(ErrorCode.AUTHENTICATION_FAILED);
+    }
+
     // OAuth2User 의 attributes 는 unmodifiable
     Map<String, Object> attributesCopy = new HashMap<>(attributes);
     attributesCopy.put("email", user.getEmail());

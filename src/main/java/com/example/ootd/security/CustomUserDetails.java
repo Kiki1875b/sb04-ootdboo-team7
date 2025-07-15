@@ -49,4 +49,9 @@ public class CustomUserDetails implements UserDetails, PrincipalUser {
 
     return true;
   }
+
+  @Override
+  public boolean isAccountNonLocked() {
+    return !user.getIsLocked();
+  }
 }
