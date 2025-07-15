@@ -1,5 +1,6 @@
 package com.example.ootd.domain.user;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -8,10 +9,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.ootd.domain.user.dto.UserPagedResponse;
 import com.example.ootd.domain.user.repository.UserRepository;
+import com.example.ootd.security.Provider;
+import com.example.ootd.security.jwt.JwtSession;
 import com.example.ootd.security.jwt.JwtSessionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import java.io.UnsupportedEncodingException;
+import java.util.Map;
+import java.util.Optional;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -67,6 +73,11 @@ public class UserServiceIntegrationTest {
     userRepository.save(
         admin
     );
+
+
+    User lockedOAuth2User = new User("oauth", "oauth@example.com", "provider-id", Provider.GOOGLE);
+    lockedOAuth2User.updateLockStatus(true);
+    userRepository.save(lockedOAuth2User);
   }
 
   @Test
@@ -116,6 +127,55 @@ public class UserServiceIntegrationTest {
     User updatedUser = userRepository.findById(user.getId()).orElseThrow();
 
     Assertions.assertThat(updatedUser.getRole()).isEqualTo(UserRole.ROLE_ADMIN);
+
+  }
+
+  @Test
+  @DisplayName("잠긴 계정은 로그인 할 수 없다")
+  void 잠긴_계정은_로그인할_수_없다() throws Exception {
+    // given
+    User foundUser = userRepository.findById(user.getId()).orElseThrow();
+    foundUser.updateLockStatus(true);
+    em.flush();
+    String json = """
+        {
+          "email": "test@gmail.com",
+          "password": "test"
+        }
+        """;
+
+    mockMvc.perform(post("/api/auth/sign-in")
+        .contentType("application/json")
+        .content(json))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("계정을 잠글시 강제 로그아웃")
+  void 계정을_잠글시_강제_로그아웃() throws Exception {
+    // given
+    MvcResult userResult = login("test@gmail.com", "test");
+    Optional<JwtSession> sessionOptional = jwtSessionRepository.findByUser_Id(user.getId());
+    Assertions.assertThat(sessionOptional).isPresent();
+    String json = """
+        { "locked" : "true" }
+        """;
+
+    em.flush();
+    em.clear();
+    // when
+    MvcResult adminResult = login("admin@email.com", "admin123");
+    String adminAccessToken = extractAccessToken(adminResult);
+    mockMvc.perform(patch("/api/users/" + user.getId() +"/lock")
+            .contentType("application/json")
+            .content(json)
+            .header("Authorization", "Bearer " + adminAccessToken))
+        .andExpect(status().isOk())
+        .andReturn();
+
+    // then
+    Optional<JwtSession> sessionOptional2 = jwtSessionRepository.findByUser_Id(user.getId());
+    Assertions.assertThat(sessionOptional2).isEmpty();
 
   }
 
