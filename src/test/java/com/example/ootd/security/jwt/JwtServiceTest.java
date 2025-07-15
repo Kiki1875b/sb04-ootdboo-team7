@@ -30,6 +30,8 @@ public class JwtServiceTest {
   @Mock
   private JwtSessionRepository jwtSessionRepository;
 
+  @Mock
+  private BlackList blackList;
 
   private final String TEST_SECRET = "thisismytestsecretkeyanditshouldbelongenoughforjwtsigning";
   private final long TEST_ACCESS_TOKEN_EXPIRATION = 3600000;
@@ -76,19 +78,19 @@ public class JwtServiceTest {
     String oldAccessToken = session.getAccessToken();
     String oldRefreshToken = session.getRefreshToken();
     Thread.sleep(1000);
-    try (MockedStatic<BlackList> mockedBlackList = mockStatic(BlackList.class)){
-      // when
-      JwtSession newSession = jwtService.rotateRefreshToken(oldRefreshToken);
 
-      // then
-      assertThat(newSession.getAccessToken()).isNotEqualTo(oldAccessToken);
-      assertThat(newSession.getRefreshToken()).isNotEqualTo(oldRefreshToken);
-      assertThat(newSession.getUser()).isEqualTo(session.getUser());
 
-      verify(jwtSessionRepository, times(0)).delete(any());
-      mockedBlackList.verify(() -> BlackList.addToBlacklist(eq(oldAccessToken), any()), times(1));
-      mockedBlackList.verify(() -> BlackList.addToBlacklist(eq(oldRefreshToken), any()), times(1));
-    }
+    // when
+    JwtSession newSession = jwtService.rotateRefreshToken(oldRefreshToken);
+
+    // then
+    assertThat(newSession.getAccessToken()).isNotEqualTo(oldAccessToken);
+    assertThat(newSession.getRefreshToken()).isNotEqualTo(oldRefreshToken);
+    assertThat(newSession.getUser()).isEqualTo(session.getUser());
+
+    verify(jwtSessionRepository, times(0)).delete(any());
+    verify(blackList).addToBlacklist(eq(oldAccessToken), any());
+    verify(blackList).addToBlacklist(eq(oldRefreshToken), any());
   }
 
   @Test

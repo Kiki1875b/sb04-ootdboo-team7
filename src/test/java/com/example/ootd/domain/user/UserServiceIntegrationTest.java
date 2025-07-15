@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.ootd.config.RedisTestContainerConfig;
 import com.example.ootd.domain.user.dto.UserPagedResponse;
 import com.example.ootd.domain.user.repository.UserRepository;
 import com.example.ootd.security.Provider;
@@ -37,7 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @SpringBootTest
 @AutoConfigureMockMvc
-public class UserServiceIntegrationTest {
+public class UserServiceIntegrationTest extends RedisTestContainerConfig {
 
   @Autowired
   MockMvc mockMvc;
@@ -166,6 +167,7 @@ public class UserServiceIntegrationTest {
     // when
     MvcResult adminResult = login("admin@email.com", "admin123");
     String adminAccessToken = extractAccessToken(adminResult);
+
     mockMvc.perform(patch("/api/users/" + user.getId() +"/lock")
             .contentType("application/json")
             .content(json)

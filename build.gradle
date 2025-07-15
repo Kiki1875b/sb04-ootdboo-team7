@@ -86,6 +86,10 @@ dependencies {
     // Cache
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'com.github.ben-manes.caffeine:caffeine'
+
+    // test containers
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.7'
 }
 
 // queryDsl 설정
