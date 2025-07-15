@@ -12,7 +12,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "app.mail.enabled", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 public class EmailService {
 

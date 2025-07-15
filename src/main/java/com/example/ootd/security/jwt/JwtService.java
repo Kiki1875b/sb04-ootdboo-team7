@@ -37,6 +37,7 @@ public class JwtService {
   private long refreshTokenExpiration;
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final JwtSessionRepository jwtSessionRepository;
+  private final BlackList blackList;
 
   // JwtSession 객체 생성 및 저장 (이미 존재한다면 삭제 + 블렉리스트 등록)
   @Transactional
@@ -47,7 +48,7 @@ public class JwtService {
       JwtSession session = sessionOptional.get();
 
       Instant expirationTime = extractExpiry(session.getAccessToken());
-      BlackList.addToBlacklist(session.getAccessToken(), expirationTime);
+      blackList.addToBlacklist(session.getAccessToken(), expirationTime);
 
       jwtSessionRepository.delete(session);
     }
@@ -80,8 +81,8 @@ public class JwtService {
       throw new OotdException(ErrorCode.AUTHENTICATION_FAILED);
     }
 
-    BlackList.addToBlacklist(session.getAccessToken(), extractExpiry(session.getAccessToken()));
-    BlackList.addToBlacklist(session.getRefreshToken(), extractExpiry(session.getRefreshToken()));
+    blackList.addToBlacklist(session.getAccessToken(), extractExpiry(session.getAccessToken()));
+    blackList.addToBlacklist(session.getRefreshToken(), extractExpiry(session.getRefreshToken()));
 
     User user = session.getUser();
     String newAccessToken = generateAccessToken(user);
@@ -96,8 +97,8 @@ public class JwtService {
   public boolean validateToken(String token) {
     try {
 
-      if (BlackList.isBlacklisted(token)) {
-        log.warn("블랙리스트에 등록된 토큰입니다. TOKEN : {}", token); // TODO : 사후 처리
+      if (blackList.isBlacklisted(token)) {
+        log.warn("블랙리스트에 등록된 토큰입니다. TOKEN : {}", token);
         return false;
       }
 
@@ -121,8 +122,8 @@ public class JwtService {
     JwtSession session = jwtSessionRepository.findByRefreshToken(token)
         .orElseThrow(() -> new OotdException(ErrorCode.AUTHENTICATION_FAILED));
 
-    BlackList.addToBlacklist(session.getAccessToken(), extractExpiry(session.getAccessToken()));
-    BlackList.addToBlacklist(session.getRefreshToken(), extractExpiry(session.getRefreshToken()));
+    blackList.addToBlacklist(session.getAccessToken(), extractExpiry(session.getAccessToken()));
+    blackList.addToBlacklist(session.getRefreshToken(), extractExpiry(session.getRefreshToken()));
 
     jwtSessionRepository.delete(session);
   }
