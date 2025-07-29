@@ -40,7 +40,7 @@ public class User {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @OneToOne
+  @OneToOne(orphanRemoval = true)
   @JoinColumn(name = "image_id", nullable = true)
   private Image image;
 
@@ -128,7 +128,7 @@ public class User {
     this.tempPasswordExpiration = null;
   }
 
-  public User(String name, String email, String providerId, Provider provider){
+  public User(String name, String email, String providerId, Provider provider) {
     this.name = name;
     this.email = email;
     this.password = null;
@@ -140,36 +140,39 @@ public class User {
     this.birthDate = LocalDate.now();
     this.temperatureSensitivity = 3;
     this.isTempPassword = false;
-     this.tempPasswordExpiration = null;
+    this.tempPasswordExpiration = null;
   }
 
-  public boolean isTempPassword(){
+  public boolean isTempPassword() {
     return this.isTempPassword;
   }
 
-  public void resetPassword(String tempPassword){
+  public void resetPassword(String tempPassword) {
     this.isTempPassword = true;
     this.tempPasswordExpiration = LocalDateTime.now().plusMinutes(10);
     this.password = tempPassword;
   }
 
-  public void updateRole(UserRole role){
+  public void updateRole(UserRole role) {
     this.role = role;
   }
 
-  public void updateProfile(ProfileUpdateRequest request, Image image){
+  public void updateProfile(ProfileUpdateRequest request, Image image) {
     this.image = image == null ? this.image : image;
     this.name = request.name() == null ? this.name : request.name();
     this.gender = request.gender() == null ? this.gender : request.gender();
     this.birthDate = request.birthDate() == null ? this.birthDate : request.birthDate();
 //    this.location = request.location() == null ? this.location : request.location();
-    this.temperatureSensitivity = request.temperatureSensitivity() == 0 ? this.temperatureSensitivity : request.temperatureSensitivity();
+    this.temperatureSensitivity =
+        request.temperatureSensitivity() == 0 ? this.temperatureSensitivity
+            : request.temperatureSensitivity();
   }
 
-  public void updateLocation(Location location){
+  public void updateLocation(Location location) {
     this.location = location;
   }
-  public void updatePassword(String password){
+
+  public void updatePassword(String password) {
     this.password = password;
     this.isTempPassword = false;
     this.tempPasswordExpiration = null;
@@ -178,6 +181,7 @@ public class User {
   public void updateLockStatus(boolean isLocked) {
     this.isLocked = isLocked;
   }
+
   // 테스트 코드 작성할 때 location이 없으면 제약 조건 위반 에러가 발생해 잠시 만들어뒀습니다 !
   public User(String name, String email, String password, Location location) {
     this.name = name;
