@@ -27,8 +27,8 @@ public class ClothesInfoLoadService {
 
     if (url.contains("zigzag.kr")) {
       return true;
-    } else if (url.contains("a-bly.com")) {
-      return true;
+//    } else if (url.contains("a-bly.com")) {   // 배포버전에서 403 떠서 주석처리
+//      return true;
     } else if (url.contains("musinsa.com")) {
       return true;
     }
